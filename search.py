@@ -11,7 +11,7 @@ Methods:
     GBFS  greedy best-first search                (informed)
     AS    A* search                               (informed)
     CUS1  iterative-deepening depth-first search  (uninformed, custom 1)
-    CUS2  A* on number of moves                   (informed, custom 2)
+    CUS2  IDA* on number of moves                 (informed, custom 2)
 
 Output when a goal is reached:
     filename method
@@ -283,14 +283,23 @@ def iterative_deepening_search(problem):
         limit += 1
 
 
-def fewest_moves_search(problem):
-    """CUS2 - A* where every move costs 1 (informed, fewest moves).
+def ida_star_search(problem):
+    """CUS2 - IDA* (iterative-deepening A*) where every move costs 1
+    (informed, fewest moves).
 
-    f(n) = moves so far + h(n). The heuristic is the straight-line distance
-    to the nearest goal divided by the longest single edge in the graph,
-    rounded up: no move can cover more than that distance, so at least that
-    many moves are still needed. It never overestimates, so the first goal
-    expanded has the fewest possible moves (path cost is ignored)."""
+    f(n) = moves so far + h(n), where h(n) is the straight-line distance to
+    the nearest goal divided by the longest single edge in the graph, rounded
+    up. No move can cover more than that distance, so at least that many moves
+    are still needed: h never overestimates, which makes IDA* optimal in moves
+    (path cost is ignored).
+
+    How it works: run a depth-first search that refuses to go into any node
+    whose f is above a threshold. If no goal is found, the new threshold is the
+    smallest f that was refused, and the search starts again. This gives A*'s
+    answer but keeps only the current path in memory, like DFS.
+
+    number_of_nodes is the total created over ALL iterations. A child counts as
+    created even if it is refused, because its f had to be calculated first."""
     longest = problem.longest_edge_length()
 
     def estimated_moves_left(state):
@@ -298,8 +307,34 @@ def fewest_moves_search(problem):
             return 0
         return math.ceil(problem.distance_to_nearest_goal(state) / longest - 1e-9)
 
-    return best_first_search(
-        problem, lambda n: n.depth + estimated_moves_left(n.state))
+    def f_value(tree_node):
+        return tree_node.depth + estimated_moves_left(tree_node.state)
+
+    created = 0
+    threshold = estimated_moves_left(problem.origin)    # f of the root (depth 0)
+    while True:
+        root = TreeNode(problem.origin)
+        frontier = [root]
+        created += 1
+        smallest_refused = math.inf          # becomes the next threshold
+        while frontier:
+            node = frontier.pop()
+            if problem.is_goal(node.state):
+                return node, created
+            children = expand(problem, node)
+            created += len(children)
+            allowed = []
+            for child in children:
+                value = f_value(child)
+                if value <= threshold:
+                    allowed.append(child)
+                else:
+                    smallest_refused = min(smallest_refused, value)
+            # Push in reverse so the smallest-numbered child is popped first.
+            frontier.extend(reversed(allowed))
+        if smallest_refused == math.inf:
+            return None, created             # nothing was refused: search space exhausted
+        threshold = smallest_refused
 
 
 SEARCH_FUNCTIONS = {
@@ -308,7 +343,7 @@ SEARCH_FUNCTIONS = {
     "GBFS": greedy_best_first_search,
     "AS": a_star_search,
     "CUS1": iterative_deepening_search,
-    "CUS2": fewest_moves_search,
+    "CUS2": ida_star_search,
 }
 
 

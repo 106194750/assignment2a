@@ -247,7 +247,7 @@ def iterative_deepening_search(problem):
 
     runs DFS with limits on depth (0, 1, 2, ...) until a goal node is found.
     it finds the shallowest goal like BFS does.
-    number_of_nodes is the total created over ALL iterations, because the
+    number_of_nodes is the total created over all iterations, because the
     program recreates the upper levels on every pass...
     search stops when a pass is never cut off by the limit, because that means
     the whole tree got explored and no goal was found."""

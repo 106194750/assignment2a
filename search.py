@@ -279,11 +279,9 @@ def ida_star_search(problem):
 
     f(n) = moves so far + h(n), where h(n) is the straight-line distance to
     the nearest goal divided by the longest single edge in the graph, rounded
-    up. No move can cover more than that distance, so at least that many moves
-    are still needed: h never overestimates, which makes IDA* optimal in moves
-    (path cost is ignored).
+    up.path cost is ignored.
 
-    How it works: run a depth-first search that refuses to go into any node
+    How it works: runs a depth-first search that refuses to go into any node
     whose f is above a threshold. If no goal is found, the new threshold is the
     smallest f that was refused, and the search starts again. This gives A*'s
     answer but keeps only the current path in memory, like DFS.
